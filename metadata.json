@@ -1,0 +1,5 @@
+{
+  "name": "EduTracker BNCC",
+  "description": "Sistema de acompanhamento pedagógico alinhado à BNCC para o Ensino Fundamental I, permitindo gestão de turmas, alunos, habilidades e grupos de reforço.",
+  "requestFramePermissions": []
+}
