@@ -298,20 +298,20 @@ export const ReinforcementGroups: React.FC = () => {
                        <div 
                          key={record.id} 
                          onClick={() => { setAttendanceDate(record.date); setActiveTab('attendance'); }}
-                         className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-100 shadow-sm hover:shadow-xl hover:border-indigo-300 transition-all group flex items-center gap-6 cursor-pointer"
+                         className="bg-white p-6 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] border-2 border-slate-100 shadow-sm hover:shadow-xl hover:border-indigo-300 transition-all group flex items-center gap-5 sm:gap-6 cursor-pointer"
                        >
-                          <div className="w-16 h-16 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all shadow-sm">
-                             <Calendar size={28} />
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 bg-slate-50 rounded-xl sm:rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all shadow-sm">
+                             <Calendar size={24} />
                           </div>
                           <div className="flex-1">
-                             <p className="text-xl font-black text-slate-800 leading-none mb-2 group-hover:text-indigo-700">
+                             <p className="text-base sm:text-lg font-black text-slate-800 leading-tight mb-1 group-hover:text-indigo-700">
                                {formatDateLong(record.date)}
                              </p>
-                             <p className="text-[11px] font-black text-[#1d63ed] uppercase tracking-widest">
+                             <p className="text-[10px] sm:text-[11px] font-black text-[#6366f1] uppercase tracking-widest">
                                {record.presentStudentIds.length} Alunos Presentes
                              </p>
                           </div>
-                          <ChevronRight size={24} className="text-slate-300 group-hover:text-indigo-400 transition-all" />
+                          <ChevronRight size={20} className="text-slate-300 group-hover:text-indigo-400 transition-all" />
                        </div>
                      ))}
                    </div>

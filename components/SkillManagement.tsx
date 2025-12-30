@@ -57,16 +57,16 @@ export const SkillManagement: React.FC = () => {
   };
 
   const validateBNCCCode = (code: string, grade: string) => {
-    // Basic BNCC validation: EFXX... where XX is the year
+    const cleanCode = code.toUpperCase().trim();
     const yearDigits = grade.replace('º', '').padStart(2, '0');
-    const codeYear = code.substring(2, 4);
     
-    if (code.length < 4 || !code.startsWith('EF')) {
+    if (cleanCode.length < 4 || !cleanCode.startsWith('EF')) {
       return "O código deve começar com 'EF' (Ensino Fundamental).";
     }
     
+    const codeYear = cleanCode.substring(2, 4);
     if (codeYear !== yearDigits) {
-      return `Conflito detectado: O código '${code}' refere-se ao ${parseInt(codeYear)}º ano, mas a série selecionada é ${grade} ano.`;
+      return `Divergência: O código '${cleanCode}' refere-se ao ${parseInt(codeYear)}º ano, mas você selecionou a série ${grade} ano. Por favor, ajuste o código ou a série.`;
     }
     
     return null;
@@ -76,7 +76,7 @@ export const SkillManagement: React.FC = () => {
     e.preventDefault();
     setValidationError(null);
 
-    const error = validateBNCCCode(newSkill.code.toUpperCase(), newSkill.grade);
+    const error = validateBNCCCode(newSkill.code, newSkill.grade);
     if (error) {
       setValidationError(error);
       return;
