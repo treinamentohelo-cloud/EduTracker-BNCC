@@ -1,5 +1,5 @@
 
-import { Student, ClassRoom, BNCCSkill, StudentEvaluation, ReinforcementGroup, TeacherInvite, UserRole, StudentStatus, SkillLevel } from '../types';
+import { Student, ClassRoom, BNCCSkill, StudentEvaluation, ReinforcementGroup, TeacherInvite, UserRole, StudentStatus, SkillLevel, Discipline, AttendanceRecord } from '../types';
 import { BNCC_SKILLS, MOCK_CLASSES, MOCK_STUDENTS } from '../constants';
 import { supabase } from './supabase';
 
@@ -11,10 +11,24 @@ const DB_KEYS = {
   EVALUATIONS: 'edutracker_evaluations',
   SKILLS: 'edutracker_skills',
   SCHOOL_NAME: 'edutracker_school_name',
-  TEACHERS: 'edutracker_teachers'
+  TEACHERS: 'edutracker_teachers',
+  DISCIPLINES: 'edutracker_disciplines',
+  ATTENDANCE: 'edutracker_attendance'
 };
 
 export const db = {
+  getDisciplines: (): string[] => {
+    const data = localStorage.getItem(DB_KEYS.DISCIPLINES);
+    return data ? JSON.parse(data) : Object.values(Discipline);
+  },
+  saveDiscipline: async (name: string) => {
+    const disciplines = db.getDisciplines();
+    if (!disciplines.includes(name)) {
+      disciplines.push(name);
+      localStorage.setItem(DB_KEYS.DISCIPLINES, JSON.stringify(disciplines));
+      await supabase.from('disciplines').upsert({ name }).select();
+    }
+  },
   getSchoolName: (): string => {
     return localStorage.getItem(DB_KEYS.SCHOOL_NAME) || 'Escola Municipal Primavera';
   },
@@ -148,6 +162,25 @@ export const db = {
     localStorage.setItem(DB_KEYS.REINFORCEMENTS, JSON.stringify(groups));
     await supabase.from('reinforcement_groups').delete().eq('id', id);
   },
+  getAttendance: (groupId?: string): AttendanceRecord[] => {
+    const data = localStorage.getItem(DB_KEYS.ATTENDANCE);
+    const records: AttendanceRecord[] = data ? JSON.parse(data) : [];
+    return groupId ? records.filter(r => r.groupId === groupId) : records;
+  },
+  saveAttendance: async (record: AttendanceRecord) => {
+    const records = db.getAttendance();
+    const index = records.findIndex(r => r.id === record.id);
+    if (index > -1) records[index] = record;
+    else records.push(record);
+    localStorage.setItem(DB_KEYS.ATTENDANCE, JSON.stringify(records));
+    
+    await supabase.from('attendance').upsert({
+      id: record.id,
+      group_id: record.groupId,
+      date: record.date,
+      present_student_ids: record.presentStudentIds
+    });
+  },
   saveEvaluation: async (evalData: StudentEvaluation) => {
     const students = db.getStudents();
     const student = students.find(s => s.id === evalData.studentId);
@@ -203,6 +236,22 @@ export const db = {
       
       const { data: skills } = await supabase.from('skills_bncc').select('*');
       if (skills) localStorage.setItem(DB_KEYS.SKILLS, JSON.stringify(skills));
+
+      const { data: disciplines } = await supabase.from('disciplines').select('name');
+      if (disciplines && disciplines.length > 0) {
+        localStorage.setItem(DB_KEYS.DISCIPLINES, JSON.stringify(disciplines.map(d => d.name)));
+      }
+
+      const { data: attendance } = await supabase.from('attendance').select('*');
+      if (attendance) {
+        const mapped = attendance.map(a => ({
+          id: a.id,
+          groupId: a.group_id,
+          date: a.date,
+          presentStudentIds: a.present_student_ids
+        }));
+        localStorage.setItem(DB_KEYS.ATTENDANCE, JSON.stringify(mapped));
+      }
 
       const { data: invites } = await supabase.from('invites').select('*');
       if (invites) {

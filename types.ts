@@ -43,7 +43,7 @@ export interface BNCCSkill {
   id: string;
   code?: string;
   name: string;
-  discipline: Discipline;
+  discipline: string;
   description: string;
   grade: string;
 }
@@ -79,10 +79,17 @@ export interface StudentEvaluation {
   score?: number;
 }
 
+export interface AttendanceRecord {
+  id: string;
+  groupId: string;
+  date: string;
+  presentStudentIds: string[];
+}
+
 export interface ReinforcementGroup {
   id: string;
   name: string;
-  discipline: Discipline;
+  discipline: string;
   skillIds: string[];
   studentIds: string[];
   schedule: string;
