@@ -1,18 +1,19 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Filter, User, X, Edit, Trash2 } from 'lucide-react';
+import { Search, Plus, Filter, User, X, Edit, Trash2, FileDown, Loader2 } from 'lucide-react';
 import { StudentStatus, Student } from '../types';
 import { db } from '../services/db';
 import { ConfirmModal } from './ConfirmModal';
+import { exportStudentDossier } from '../services/pdfService';
 
 export const StudentManagement: React.FC = () => {
   const [students, setStudents] = useState(db.getStudents());
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState<string | null>(null);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [newStudent, setNewStudent] = useState({ name: '', age: '', grade: '1º', classId: 'c-1' });
   
-  // Delete confirmation state
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string; name: string }>({
     isOpen: false,
     id: '',
@@ -52,6 +53,18 @@ export const StudentManagement: React.FC = () => {
     setNewStudent({ name: '', age: '', grade: '1º', classId: 'c-1' });
   };
 
+  const handleGeneratePDF = (student: Student) => {
+    setIsGenerating(student.id);
+    // Pequeno delay para feedback visual
+    setTimeout(() => {
+      const allEvaluations = db.getStudents()
+        .find(s => s.id === student.id)?.evaluations || [];
+      const skills = db.getSkills();
+      exportStudentDossier(student, allEvaluations, skills);
+      setIsGenerating(null);
+    }, 800);
+  };
+
   const openEditModal = (student: Student) => {
     setEditingStudent(student);
     setNewStudent({
@@ -76,6 +89,8 @@ export const StudentManagement: React.FC = () => {
       default: return 'bg-slate-50 text-slate-600 border-slate-100';
     }
   };
+
+  const filteredStudents = students.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
     <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
@@ -153,7 +168,7 @@ export const StudentManagement: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {students.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase())).map((student) => (
+            {filteredStudents.map((student) => (
               <tr key={student.id} className="hover:bg-slate-50/50 transition-colors group">
                 <td className="px-8 py-6">
                   <div className="flex items-center gap-4">
@@ -180,6 +195,14 @@ export const StudentManagement: React.FC = () => {
                 <td className="px-8 py-6 text-right">
                   <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button 
+                      onClick={() => handleGeneratePDF(student)}
+                      className={`p-3 bg-white border border-slate-200 hover:bg-green-50 text-green-600 rounded-xl transition-all shadow-sm ${isGenerating === student.id ? 'animate-pulse' : ''}`}
+                      title="Gerar Dossiê PDF"
+                      disabled={isGenerating !== null}
+                    >
+                      {isGenerating === student.id ? <Loader2 className="animate-spin" size={18} /> : <FileDown size={18} />}
+                    </button>
+                    <button 
                       onClick={() => openEditModal(student)}
                       className="p-3 bg-white border border-slate-200 hover:bg-blue-50 text-blue-600 rounded-xl transition-all shadow-sm"
                       title="Editar Aluno"
@@ -199,7 +222,7 @@ export const StudentManagement: React.FC = () => {
             ))}
           </tbody>
         </table>
-        {students.length === 0 && (
+        {filteredStudents.length === 0 && (
           <div className="p-20 text-center space-y-4">
              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-200">
                 <User size={40} />

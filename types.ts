@@ -93,6 +93,8 @@ export interface ReinforcementGroup {
   skillIds: string[];
   studentIds: string[];
   schedule: string;
+  startDate: string; // Nova data de início
+  expectedEndDate?: string; // Nova previsão de saída
 }
 
 export interface TeacherInvite {

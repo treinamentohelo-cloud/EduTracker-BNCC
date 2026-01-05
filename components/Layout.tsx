@@ -39,14 +39,15 @@ export const Layout: React.FC<LayoutProps> = ({
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [schoolName, setSchoolName] = useState(db.getSchoolName());
 
-  // Update school name when it changes in DB (simple polling or custom event could be used, here we sync on render)
   useEffect(() => {
-    const interval = setInterval(() => {
-      const current = db.getSchoolName();
-      if (current !== schoolName) setSchoolName(current);
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [schoolName]);
+    // Escuta mudanças no nome da escola disparadas pelo Portal do Gestor
+    const handleSchoolChange = (e: any) => {
+      setSchoolName(e.detail);
+    };
+
+    window.addEventListener('schoolNameChanged', handleSchoolChange);
+    return () => window.removeEventListener('schoolNameChanged', handleSchoolChange);
+  }, []);
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },

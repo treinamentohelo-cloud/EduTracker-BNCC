@@ -1,4 +1,3 @@
-
 import { Student, ClassRoom, BNCCSkill, StudentEvaluation, ReinforcementGroup, TeacherInvite, UserRole, StudentStatus, SkillLevel, Discipline, AttendanceRecord } from '../types';
 import { BNCC_SKILLS, MOCK_CLASSES, MOCK_STUDENTS } from '../constants';
 import { supabase } from './supabase';
@@ -34,7 +33,12 @@ export const db = {
   },
   saveSchoolName: async (name: string) => {
     localStorage.setItem(DB_KEYS.SCHOOL_NAME, name);
-    await supabase.from('school_config').upsert({ id: 1, name }).select();
+    window.dispatchEvent(new CustomEvent('schoolNameChanged', { detail: name }));
+    try {
+      await supabase.from('school_config').upsert({ id: 1, name }).select();
+    } catch (e) {
+      console.warn("Supabase not configured for school name sync");
+    }
   },
   getStudents: (): Student[] => {
     const data = localStorage.getItem(DB_KEYS.STUDENTS);
@@ -106,10 +110,83 @@ export const db = {
       grade: skill.grade
     });
   },
+  // Added fix: Implementation of deleteSkill method
   deleteSkill: async (id: string) => {
     const skills = db.getSkills().filter(s => s.id !== id);
     localStorage.setItem(DB_KEYS.SKILLS, JSON.stringify(skills));
     await supabase.from('skills_bncc').delete().eq('id', id);
+  },
+  getReinforcements: (): ReinforcementGroup[] => {
+    const data = localStorage.getItem(DB_KEYS.REINFORCEMENTS);
+    return data ? JSON.parse(data) : [];
+  },
+  saveReinforcement: async (group: ReinforcementGroup) => {
+    const groups = db.getReinforcements();
+    const index = groups.findIndex(g => g.id === group.id);
+    if (index > -1) groups[index] = group;
+    else groups.push(group);
+    localStorage.setItem(DB_KEYS.REINFORCEMENTS, JSON.stringify(groups));
+    await supabase.from('reinforcement_groups').upsert({
+      id: group.id,
+      name: group.name,
+      discipline: group.discipline,
+      student_ids: group.studentIds,
+      skill_ids: group.skillIds,
+      schedule: group.schedule
+    });
+  },
+  deleteReinforcement: async (id: string) => {
+    const groups = db.getReinforcements().filter(g => g.id !== id);
+    localStorage.setItem(DB_KEYS.REINFORCEMENTS, JSON.stringify(groups));
+    await supabase.from('reinforcement_groups').delete().eq('id', id);
+  },
+  getAttendance: (groupId?: string): AttendanceRecord[] => {
+    const data = localStorage.getItem(DB_KEYS.ATTENDANCE);
+    const records: AttendanceRecord[] = data ? JSON.parse(data) : [];
+    return groupId ? records.filter(r => r.groupId === groupId) : records;
+  },
+  saveAttendance: async (record: AttendanceRecord) => {
+    const records = db.getAttendance();
+    const index = records.findIndex(r => r.id === record.id);
+    if (index > -1) records[index] = record;
+    else records.push(record);
+    localStorage.setItem(DB_KEYS.ATTENDANCE, JSON.stringify(records));
+    
+    await supabase.from('attendance').upsert({
+      id: record.id,
+      group_id: record.groupId,
+      date: record.date,
+      present_student_ids: record.presentStudentIds
+    });
+  },
+  saveEvaluation: async (evalData: StudentEvaluation) => {
+    const students = db.getStudents();
+    const student = students.find(s => s.id === evalData.studentId);
+    if (student) {
+      if (!student.evaluations) student.evaluations = [];
+      const existingIdx = student.evaluations.findIndex(e => e.skillId === evalData.skillId && e.bimester === evalData.bimester);
+      if (existingIdx > -1) student.evaluations[existingIdx] = evalData;
+      else student.evaluations.push(evalData);
+
+      if (evalData.level === SkillLevel.NOT_ACHIEVED) student.status = StudentStatus.NEEDS_REINFORCEMENT;
+      else if (evalData.level === SkillLevel.DEVELOPING) student.status = StudentStatus.DEVELOPING;
+      else student.status = StudentStatus.ADEQUATE;
+      
+      db.saveStudent(student);
+      
+      await supabase.from('evaluations').upsert({
+        id: evalData.id,
+        student_id: evalData.studentId,
+        skill_id: evalData.skillId,
+        level: evalData.level,
+        date: evalData.date,
+        bimester: evalData.bimester,
+        feedback: evalData.feedback,
+        type: evalData.type,
+        score: evalData.score,
+        max_score: evalData.maxScore
+      });
+    }
   },
   getInvites: (): TeacherInvite[] => {
     const data = localStorage.getItem(DB_KEYS.INVITES);
@@ -145,87 +222,6 @@ export const db = {
       { id: 'prof-2', name: 'Helena Souza', email: 'helena.prof@escola.com', status: 'Ativo', classes: ['2º Ano C'] }
     ];
   },
-  getReinforcements: (): ReinforcementGroup[] => {
-    const data = localStorage.getItem(DB_KEYS.REINFORCEMENTS);
-    return data ? JSON.parse(data) : [];
-  },
-  saveReinforcement: async (group: ReinforcementGroup) => {
-    const groups = db.getReinforcements();
-    const index = groups.findIndex(g => g.id === group.id);
-    if (index > -1) groups[index] = group;
-    else groups.push(group);
-    localStorage.setItem(DB_KEYS.REINFORCEMENTS, JSON.stringify(groups));
-    await supabase.from('reinforcement_groups').upsert(group);
-  },
-  deleteReinforcement: async (id: string) => {
-    const groups = db.getReinforcements().filter(g => g.id !== id);
-    localStorage.setItem(DB_KEYS.REINFORCEMENTS, JSON.stringify(groups));
-    await supabase.from('reinforcement_groups').delete().eq('id', id);
-  },
-  getAttendance: (groupId?: string): AttendanceRecord[] => {
-    const data = localStorage.getItem(DB_KEYS.ATTENDANCE);
-    const records: AttendanceRecord[] = data ? JSON.parse(data) : [];
-    return groupId ? records.filter(r => r.groupId === groupId) : records;
-  },
-  saveAttendance: async (record: AttendanceRecord) => {
-    const records = db.getAttendance();
-    const index = records.findIndex(r => r.id === record.id);
-    if (index > -1) records[index] = record;
-    else records.push(record);
-    localStorage.setItem(DB_KEYS.ATTENDANCE, JSON.stringify(records));
-    
-    await supabase.from('attendance').upsert({
-      id: record.id,
-      group_id: record.groupId,
-      date: record.date,
-      present_student_ids: record.presentStudentIds
-    });
-  },
-  saveEvaluation: async (evalData: StudentEvaluation) => {
-    const students = db.getStudents();
-    const student = students.find(s => s.id === evalData.studentId);
-    if (student) {
-      if (!student.evaluations) student.evaluations = [];
-      
-      const existingIdx = student.evaluations.findIndex(e => e.skillId === evalData.skillId && e.bimester === evalData.bimester);
-      if (existingIdx > -1) {
-        student.evaluations[existingIdx] = evalData;
-      } else {
-        student.evaluations.push(evalData);
-      }
-
-      if (evalData.level === SkillLevel.NOT_ACHIEVED) {
-        student.status = StudentStatus.NEEDS_REINFORCEMENT;
-      } else if (evalData.level === SkillLevel.DEVELOPING) {
-        student.status = StudentStatus.DEVELOPING;
-      } else {
-        student.status = StudentStatus.ADEQUATE;
-      }
-      
-      db.saveStudent(student);
-      
-      await supabase.from('evaluations').upsert({
-        id: evalData.id,
-        student_id: evalData.studentId,
-        skill_id: evalData.skillId,
-        level: evalData.level,
-        date: evalData.date,
-        bimester: evalData.bimester,
-        feedback: evalData.feedback,
-        type: evalData.type,
-        score: evalData.score,
-        max_score: evalData.maxScore
-      });
-    }
-  },
-  updateStudentStatus: async (studentId: string, status: StudentStatus) => {
-    const students = db.getStudents();
-    const student = students.find(s => s.id === studentId);
-    if (student) {
-      student.status = status;
-      db.saveStudent(student);
-    }
-  },
   syncFromSupabase: async () => {
     try {
       const { data: students } = await supabase.from('students').select('*');
@@ -253,16 +249,17 @@ export const db = {
         localStorage.setItem(DB_KEYS.ATTENDANCE, JSON.stringify(mapped));
       }
 
-      const { data: invites } = await supabase.from('invites').select('*');
-      if (invites) {
-         const mapped = invites.map(i => ({
-            id: i.id,
-            email: i.email,
-            role: i.role,
-            status: i.status,
-            inviteLink: i.invite_link
-         }));
-         localStorage.setItem(DB_KEYS.INVITES, JSON.stringify(mapped));
+      const { data: reinforces } = await supabase.from('reinforcement_groups').select('*');
+      if (reinforces) {
+        const mapped = reinforces.map(r => ({
+          id: r.id,
+          name: r.name,
+          discipline: r.discipline,
+          studentIds: r.student_ids,
+          skillIds: r.skill_ids,
+          schedule: r.schedule
+        }));
+        localStorage.setItem(DB_KEYS.REINFORCEMENTS, JSON.stringify(mapped));
       }
     } catch (e) {
       console.error("Erro ao sincronizar com Supabase:", e);
