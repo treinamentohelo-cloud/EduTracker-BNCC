@@ -11,7 +11,7 @@ import { ManagerPortal } from './components/ManagerPortal';
 import { Reports } from './components/Reports';
 import { Login } from './components/Login';
 import { ConfirmModal } from './components/ConfirmModal';
-import { UserRole, ClassRoom, Student } from './types';
+import { UserRole, ClassRoom } from './types';
 import { db } from './services/db';
 import { supabase } from './services/supabase';
 import { 
@@ -36,7 +36,7 @@ const App: React.FC = () => {
   const [editingClass, setEditingClass] = useState<ClassRoom | null>(null);
   const [classes, setClasses] = useState(db.getClasses());
   const [viewingClassId, setViewingClassId] = useState<string | null>(null);
-  const [newClass, setNewClass] = useState({ name: '', grade: '1º', shift: 'Matutino' });
+  const [newClass, setNewClass] = useState({ name: '', grade: '1º', shift: 'Matutino', teacherName: '' });
   
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string; name: string }>({ 
     isOpen: false, 
@@ -99,13 +99,7 @@ const App: React.FC = () => {
   const closeClassModal = () => {
     setShowClassModal(false);
     setEditingClass(null);
-    setNewClass({ name: '', grade: '1º', shift: 'Matutino' });
-  };
-
-  const openEditClassModal = (cls: ClassRoom) => {
-    setEditingClass(cls);
-    setNewClass({ name: cls.name, grade: cls.grade, shift: cls.shift });
-    setShowClassModal(true);
+    setNewClass({ name: '', grade: '1º', shift: 'Matutino', teacherName: '' });
   };
 
   const handleLogout = async () => {
@@ -187,9 +181,9 @@ const App: React.FC = () => {
       case 'classes': return viewingClassId && currentClass ? renderClassDetail(currentClass) : (
         <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
           <div className="flex items-center justify-between">
-            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Gestão de Turmas</h3>
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Gestão de Turmas - Ano Letivo 2026</h3>
             {(userRole === UserRole.COORDINATOR || userRole === UserRole.MANAGER) && (
-              <button onClick={() => setShowClassModal(true)} className="flex items-center gap-2 bg-[#1d63ed] text-white px-8 py-4 rounded-2xl text-xs font-black shadow-xl shadow-blue-100 border border-black/10 hover:bg-blue-700 active:scale-95 transition-all">
+              <button onClick={() => setShowClassModal(true)} className="flex items-center gap-2 bg-[#1d63ed] text-white px-8 py-4 rounded-2xl text-xs font-black shadow-xl border border-black/10 hover:bg-blue-700 active:scale-95 transition-all">
                 <Plus size={18} /> Cadastrar Nova Turma
               </button>
             )}
@@ -198,18 +192,12 @@ const App: React.FC = () => {
             {classes.map((c) => (
               <div key={c.id} onClick={() => setViewingClassId(c.id)} className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm hover:border-blue-400 hover:shadow-2xl transition-all cursor-pointer group relative overflow-hidden flex flex-col">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform"></div>
-                {(userRole === UserRole.COORDINATOR || userRole === UserRole.MANAGER) && (
-                  <div className="absolute top-8 right-8 flex gap-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={(e) => { e.stopPropagation(); openEditClassModal(c); }} className="p-3 bg-white border border-slate-200 hover:bg-blue-50 text-blue-600 rounded-xl transition-all shadow-sm"><Edit size={16} /></button>
-                    <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ isOpen: true, id: c.id, name: c.name }); }} className="p-3 bg-white border border-slate-200 hover:bg-red-50 text-red-600 rounded-xl transition-all shadow-sm"><Trash2 size={16} /></button>
-                  </div>
-                )}
                 <div className="relative z-10">
                   <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mb-8 shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-all"><School size={28} /></div>
                   <h4 className="text-2xl font-black text-slate-900 group-hover:text-blue-600 transition-colors pr-16 leading-tight mb-2">{c.name}</h4>
                   <p className="text-slate-500 font-bold text-sm uppercase tracking-widest mb-10">{c.shift} • {c.grade} Ano</p>
                   <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
-                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ensino Fundamental I</span>
+                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">EduTracker 2026</span>
                      <div className="flex items-center text-blue-600 font-black text-xs uppercase tracking-widest">Gerenciar <ChevronRight size={16} className="ml-1 group-hover:ml-3 transition-all" /></div>
                   </div>
                 </div>
@@ -236,13 +224,17 @@ const App: React.FC = () => {
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
           <form onSubmit={handleCreateOrEditClass} className="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl p-10 space-y-8 animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-black text-slate-800">{editingClass ? 'Editar Turma' : 'Nova Turma'}</h3>
-              <button type="button" onClick={closeClassModal} className="text-slate-400 hover:text-slate-600 p-2"><X /></button>
+              <h3 className="text-2xl font-black text-slate-800">{editingClass ? 'Editar Turma' : 'Nova Turma 2026'}</h3>
+              <button type="button" onClick={closeClassModal} className="text-slate-400 p-2"><X /></button>
             </div>
             <div className="space-y-6">
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Identificação da Turma</label>
-                <input required placeholder="Ex: 1º Ano A" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold" value={newClass.name} onChange={e => setNewClass({...newClass, name: e.target.value})} />
+                <input required placeholder="Ex: 5º Ano B" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold" value={newClass.name} onChange={e => setNewClass({...newClass, name: e.target.value})} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1">Professor Responsável</label>
+                <input required placeholder="Nome completo do docente" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold" value={newClass.teacherName} onChange={e => setNewClass({...newClass, teacherName: e.target.value})} />
               </div>
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2">

@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { ReinforcementGroup, AttendanceRecord, Student, StudentStatus } from '../types';
 import { db } from '../services/db';
+import { ConfirmModal } from './ConfirmModal';
 
 export const ReinforcementGroups: React.FC = () => {
   const [groups, setGroups] = useState<ReinforcementGroup[]>([]);
@@ -45,6 +46,13 @@ export const ReinforcementGroups: React.FC = () => {
   const [presentStudents, setPresentStudents] = useState<string[]>([]);
   const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>([]);
   const [activeTab, setActiveTab] = useState<'attendance' | 'history'>('attendance');
+
+  // Modal Deletar
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string; name: string }>({
+    isOpen: false,
+    id: '',
+    name: ''
+  });
 
   const students = db.getStudents();
   const disciplines = db.getDisciplines();
@@ -86,6 +94,12 @@ export const ReinforcementGroups: React.FC = () => {
     setGroups(db.getReinforcements());
     setIsCreating(false);
     resetForm();
+  };
+
+  const handleDeleteGroup = async () => {
+    await db.deleteReinforcement(deleteConfirm.id);
+    setGroups(db.getReinforcements());
+    setDeleteConfirm({ isOpen: false, id: '', name: '' });
   };
 
   const resetForm = () => {
@@ -141,6 +155,14 @@ export const ReinforcementGroups: React.FC = () => {
   return (
     <div className="space-y-10 animate-in fade-in duration-500 max-w-7xl mx-auto">
       
+      <ConfirmModal 
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ ...deleteConfirm, isOpen: false })}
+        onConfirm={handleDeleteGroup}
+        title="Excluir Grupo de Reforço?"
+        message={`Deseja realmente excluir o grupo "${deleteConfirm.name}"? Isso removerá o histórico de presença e o vínculo dos alunos com esta célula de intervenção.`}
+      />
+
       {/* Modal Criar Grupo */}
       {isCreating && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[200] flex items-center justify-center p-4">
@@ -348,7 +370,15 @@ export const ReinforcementGroups: React.FC = () => {
                   <div className="absolute top-0 left-0 w-full h-2 bg-indigo-600"></div>
                   
                   <div className="absolute top-8 right-8 flex gap-2 z-10 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
-                    <button onClick={(e) => { e.stopPropagation(); db.deleteReinforcement(group.id).then(() => setGroups(db.getReinforcements())) }} className="p-3 bg-white border border-slate-200 hover:bg-rose-50 text-rose-600 rounded-xl transition-all shadow-lg"><Trash2 size={20} /></button>
+                    <button 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        setDeleteConfirm({ isOpen: true, id: group.id, name: group.name });
+                      }} 
+                      className="p-3 bg-white border border-slate-200 hover:bg-rose-50 text-rose-600 rounded-xl transition-all shadow-lg"
+                    >
+                      <Trash2 size={20} />
+                    </button>
                   </div>
 
                   <span className="text-[10px] font-black px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-700 uppercase tracking-widest w-fit mb-6 border border-indigo-100">{group.discipline}</span>

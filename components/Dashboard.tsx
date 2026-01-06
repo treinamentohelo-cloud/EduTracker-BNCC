@@ -2,12 +2,14 @@
 import React, { useMemo } from 'react';
 import { 
   Users, 
-  UserCheck, 
   AlertCircle, 
-  TrendingUp, 
-  Lightbulb,
-  ArrowUpRight,
-  ArrowDownRight
+  School,
+  Target,
+  BarChart3,
+  Calendar,
+  Sparkles,
+  ChevronRight,
+  Lightbulb
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -30,189 +32,177 @@ export const Dashboard: React.FC = () => {
 
   const stats = useMemo(() => {
     const total = students.length;
-    const adequate = students.filter(s => s.status === StudentStatus.ADEQUATE).length;
-    const developing = students.filter(s => s.status === StudentStatus.DEVELOPING).length;
-    const needsRef = students.filter(s => s.status === StudentStatus.NEEDS_REINFORCEMENT).length;
+    const adequado = students.filter(s => s.status === StudentStatus.ADEQUATE).length;
+    const emDesenvolvimento = students.filter(s => s.status === StudentStatus.DEVELOPING).length;
+    const precisaReforco = students.filter(s => s.status === StudentStatus.NEEDS_REINFORCEMENT).length;
     
     return {
       total,
       classes: classes.length,
-      adequate,
-      developing,
-      needsRef,
-      diffTotal: developing + needsRef,
-      percAdequate: total > 0 ? Math.round((adequate / total) * 100) : 0
+      adequado,
+      emDesenvolvimento,
+      precisaReforco,
+      percAdequado: total > 0 ? Math.round((adequado / total) * 100) : 0
     };
   }, [students, classes]);
 
   const pieData = [
-    { name: 'Adequado', value: stats.adequate, color: '#1d63ed' },
-    { name: 'Em Desenv.', value: stats.developing, color: '#f59e0b' },
-    { name: 'Reforço', value: stats.needsRef, color: '#f43f5e' },
+    { name: 'Adequado', value: stats.adequado, color: '#10b981' },
+    { name: 'Em Desenvolvimento', value: stats.emDesenvolvimento, color: '#f59e0b' },
+    { name: 'Reforço', value: stats.precisaReforco, color: '#ef4444' },
   ];
 
-  // Dados mockados para o gráfico de barras por disciplina (já que as avaliações reais dependem de lançamentos)
   const barData = [
-    { name: 'Português', achieved: 75, developing: 15, failed: 10 },
-    { name: 'Matemática', achieved: 60, developing: 25, failed: 15 },
-    { name: 'Ciências', achieved: 85, developing: 10, failed: 5 },
+    { name: 'Língua Portuguesa', atingido: 75, desenvolvimento: 15 },
+    { name: 'Matemática', atingido: 62, desenvolvimento: 23 },
+    { name: 'Ciências', atingido: 88, desenvolvimento: 8 },
+    { name: 'Geografia', atingido: 70, desenvolvimento: 20 },
   ];
+
+  const getSaudacao = () => {
+    const hora = new Date().getHours();
+    if (hora < 12) return "Bom dia";
+    if (hora < 18) return "Boa tarde";
+    return "Boa noite";
+  };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4 group hover:border-blue-300 transition-all">
-          <div className="bg-blue-50 text-blue-600 p-4 rounded-2xl group-hover:scale-110 transition-transform">
-            <Users size={24} />
-          </div>
-          <div>
-            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Turmas</p>
-            <p className="text-2xl font-black text-slate-900">{stats.classes}</p>
-          </div>
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-6 duration-1000 max-w-[1280px] mx-auto pb-6">
+      
+      {/* Cabeçalho Compacto e Centralizado */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-2 mb-2">
+        <div className="animate-in slide-in-from-left-4 duration-700">
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            {getSaudacao()}, Educador <span className="text-blue-600">Eduardo</span> 👋
+          </h2>
+          <p className="text-slate-400 font-bold text-sm italic">Visão estratégica da rede • 2026</p>
         </div>
-
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4 group hover:border-green-300 transition-all">
-          <div className="bg-green-50 text-green-600 p-4 rounded-2xl group-hover:scale-110 transition-transform">
-            <UserCheck size={24} />
-          </div>
-          <div>
-            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Total Alunos</p>
-            <p className="text-2xl font-black text-slate-900">{stats.total}</p>
-          </div>
-        </div>
-
-        {/* Card Detalhado de Dificuldades */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-4 group hover:border-rose-300 transition-all col-span-1 md:col-span-2 lg:col-span-1">
-          <div className="flex items-center gap-4">
-            <div className="bg-rose-50 text-rose-600 p-4 rounded-2xl group-hover:scale-110 transition-transform">
-              <AlertCircle size={24} />
-            </div>
-            <div>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Com Dificuldades</p>
-              <p className="text-2xl font-black text-slate-900">{stats.diffTotal}</p>
-            </div>
-          </div>
-          <div className="flex gap-2 pt-2 border-t border-slate-50">
-            <div className="flex-1 bg-rose-50 px-3 py-2 rounded-xl">
-              <p className="text-[10px] font-black text-rose-600 uppercase">Reforço</p>
-              <p className="text-lg font-black text-rose-700">{stats.needsRef}</p>
-            </div>
-            <div className="flex-1 bg-amber-50 px-3 py-2 rounded-xl">
-              <p className="text-[10px] font-black text-amber-600 uppercase">Atenção</p>
-              <p className="text-lg font-black text-amber-700">{stats.developing}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-center gap-4 group hover:border-indigo-300 transition-all">
-          <div className="bg-indigo-50 text-indigo-600 p-4 rounded-2xl group-hover:scale-110 transition-transform">
-            <TrendingUp size={24} />
-          </div>
-          <div>
-            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Evolução Adequada</p>
-            <p className="text-2xl font-black text-slate-900">{stats.percAdequate}%</p>
+        <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl shadow-lg border border-slate-100 animate-in slide-in-from-right-4 duration-700">
+          <div className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md shadow-blue-100">
+            <Calendar size={14} className="shrink-0" />
+            <span className="text-[10px] font-black uppercase tracking-widest">Ano Letivo 2026</span>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Chart */}
-        <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h3 className="text-xl font-black text-slate-800">Desempenho por Disciplina</h3>
-              <p className="text-sm text-slate-400 font-medium italic">Visão geral do aproveitamento BNCC</p>
+      {/* Grid de Cards Menores e Elegantes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Total de Alunos', valor: stats.total, sub: 'Matriculados', icone: Users, cor: 'blue', delay: 100 },
+          { label: 'Turmas Ativas', valor: stats.classes, sub: 'Unidades', icone: School, cor: 'indigo', delay: 200 },
+          { label: 'Aproveitamento BNCC', valor: `${stats.percAdequado}%`, sub: 'Meta Global', icone: Target, cor: 'emerald', delay: 300, destaque: true },
+          { label: 'Alerta de Reforço', valor: stats.precisaReforco, sub: 'Crítico', icone: AlertCircle, cor: 'rose', delay: 400 },
+        ].map((card, idx) => (
+          <div 
+            key={idx}
+            className={`p-5 rounded-[1.5rem] border border-slate-100 shadow-sm transition-all duration-500 group relative overflow-hidden transform hover:-translate-y-2 hover:shadow-xl hover:scale-[1.02] animate-in slide-in-from-bottom-2 ${card.destaque ? 'bg-slate-900 text-white' : 'bg-white'}`}
+            style={{ animationDelay: `${card.delay}ms` }}
+          >
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-md mb-3 transition-transform group-hover:rotate-6 ${card.destaque ? 'bg-white/10 border border-white/20' : 'bg-' + card.cor + '-600 text-white'}`}>
+              <card.icone size={20} />
             </div>
-            <select className="text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 outline-none font-bold text-slate-600">
-              <option>Consolidado Anual</option>
-              {classes.map(c => <option key={c.id}>{c.name}</option>)}
-            </select>
+            <div>
+              <p className={`text-[9px] font-black uppercase tracking-[0.1em] mb-1 ${card.destaque ? 'text-blue-300' : 'text-slate-400'}`}>{card.label}</p>
+              <div className="flex items-baseline gap-2">
+                <h4 className="text-2xl font-black">{card.valor}</h4>
+                <span className={`text-[9px] font-bold uppercase tracking-widest ${card.destaque ? 'text-blue-400' : 'text-' + card.cor + '-500'}`}>{card.sub}</span>
+              </div>
+            </div>
           </div>
-          <div className="h-80">
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Gráfico Compacto */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-lg font-black text-slate-800 tracking-tight">Desempenho por Área</h3>
+              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Métricas BNCC</p>
+            </div>
+            <div className="flex gap-2">
+              <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div><span className="text-[9px] font-black text-slate-400 uppercase">Atingido</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div><span className="text-[9px] font-black text-slate-400 uppercase">Desenv.</span></div>
+            </div>
+          </div>
+          <div className="h-[240px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barData}>
+              <BarChart data={barData} barGap={8}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12, fontWeight: 700}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12, fontWeight: 700}} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 8, fontWeight: 800}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 9, fontWeight: 700}} />
                 <Tooltip 
                   cursor={{fill: '#f8fafc'}}
-                  contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px'}}
+                  contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 20px rgba(0,0,0,0.05)', padding: '10px', fontSize: '11px'}}
                 />
-                <Bar dataKey="achieved" fill="#1d63ed" radius={[6, 6, 0, 0]} name="Atingiu" barSize={32} />
-                <Bar dataKey="developing" fill="#f59e0b" radius={[6, 6, 0, 0]} name="Em Desenvolvimento" barSize={32} />
-                <Bar dataKey="failed" fill="#f43f5e" radius={[6, 6, 0, 0]} name="Não Atingiu" barSize={32} />
+                <Bar dataKey="atingido" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} />
+                <Bar dataKey="desenvolvimento" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={20} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Distribution Card */}
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col">
-          <h3 className="text-xl font-black text-slate-800 mb-2">Status dos Alunos</h3>
-          <p className="text-sm text-slate-400 font-medium mb-6">Distribuição atual da unidade</p>
-          <div className="h-64 flex-1">
+        {/* Status Circular Compacto */}
+        <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
+              <BarChart3 size={16} />
+            </div>
+            <h3 className="text-lg font-black text-slate-800 tracking-tight">Status Geral</h3>
+          </div>
+          
+          <div className="flex-1 relative min-h-[160px] my-2">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={95}
-                  paddingAngle={8}
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
-                  ))}
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={65} paddingAngle={6} dataKey="value">
+                  {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />)}
                 </Pie>
                 <Tooltip />
               </PieChart>
             </ResponsiveContainer>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+               <p className="text-xl font-black text-slate-900">{stats.total}</p>
+               <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Alunos</p>
+            </div>
           </div>
-          <div className="space-y-3 mt-6">
+
+          <div className="grid grid-cols-1 gap-1">
             {pieData.map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-4 h-4 rounded-full" style={{backgroundColor: item.color}}></div>
-                  <span className="text-sm font-bold text-slate-600">{item.name}</span>
+              <div key={idx} className="flex items-center justify-between p-2 bg-slate-50/80 rounded-xl border border-transparent hover:border-slate-200 transition-all hover:bg-white group">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full" style={{backgroundColor: item.color}}></div>
+                  <span className="text-[9px] font-black text-slate-600">{item.name}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-black text-slate-900">{item.value}</span>
-                  <span className="text-[10px] text-slate-400 font-bold">({stats.total > 0 ? Math.round((item.value / stats.total) * 100) : 0}%)</span>
-                </div>
+                <span className="text-xs font-black text-slate-900">{item.value}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* IA Insights Section */}
-      <div className="bg-gradient-to-br from-[#1d63ed] to-[#0047d1] p-10 rounded-[2.5rem] text-white shadow-2xl shadow-blue-200 relative overflow-hidden group">
-        <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none group-hover:scale-125 transition-transform duration-1000">
-           <Lightbulb size={200} />
-        </div>
-        <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
-          <div className="bg-white/20 p-5 rounded-3xl backdrop-blur-md border border-white/20 shadow-xl">
-            <Lightbulb size={40} className="text-amber-300 fill-amber-300" />
-          </div>
-          <div className="flex-1 space-y-4">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/20 backdrop-blur-xl rounded-full text-[10px] font-black tracking-widest uppercase">
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-              Analítico IA Ativo
+      {/* IA Pedagógica Compacta */}
+      <div className="bg-gradient-to-br from-[#1d63ed] to-[#1e1b4b] p-0.5 shadow-xl rounded-[2.5rem] animate-in slide-up-4 duration-1000">
+        <div className="bg-white/5 backdrop-blur-2xl p-6 md:p-8 rounded-[2.4rem] text-white relative overflow-hidden">
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            <div className="lg:col-span-5 space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 backdrop-blur-md rounded-lg border border-white/20 shadow-lg">
+                <Sparkles size={14} className="text-blue-300" />
+                <span className="text-[8px] font-black tracking-[0.2em] uppercase text-blue-100">Inteligência Pedagógica</span>
+              </div>
+              <h3 className="text-2xl font-black leading-tight tracking-tight text-center lg:text-left">Seu assistente para o Sucesso.</h3>
             </div>
-            <h3 className="text-3xl font-black">Insight Pedagógico do Dia</h3>
-            <p className="text-blue-50 leading-relaxed text-lg max-w-4xl opacity-90 italic">
-              "Com base nos dados atuais, a Turma B apresenta uma lacuna de 15% na habilidade de Consciência Fonológica. Intensificar atividades de rima e ludicidade nesta semana pode acelerar a recuperação destes alunos."
-            </p>
-            <div className="flex gap-4 pt-2">
-               <button className="px-8 py-3.5 bg-white text-blue-700 font-black rounded-2xl text-sm hover:scale-105 active:scale-95 transition-all shadow-xl">
-                 Ver Plano de Intervenção
-               </button>
-               <button className="px-8 py-3.5 bg-blue-500/30 text-white font-black rounded-2xl text-sm hover:bg-blue-500/50 transition-all border border-white/20">
-                 Gerar Novo Insight
-               </button>
+
+            <div className="lg:col-span-7 bg-white/10 border border-white/20 rounded-[2rem] p-5 backdrop-blur-2xl hover:bg-white/15 transition-all">
+              <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
+                 <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/50">
+                    <Lightbulb size={20} className="text-white" />
+                 </div>
+                 <h4 className="text-base font-black">Intervenção 2026</h4>
+              </div>
+              <p className="text-xs font-medium leading-relaxed mb-4 opacity-90 text-center lg:text-left">Habilidade EF01LP05 em foco: Oficina de leitura lúdica recomendada.</p>
+              <button className="w-full px-6 py-3 bg-blue-500 text-white font-black rounded-xl hover:bg-blue-400 transition-all shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2 group text-xs">
+                Gerar Plano <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              </button>
             </div>
           </div>
         </div>
