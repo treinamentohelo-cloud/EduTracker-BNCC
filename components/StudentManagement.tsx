@@ -1,18 +1,24 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Filter, User, X, Edit, Trash2, FileDown, Loader2 } from 'lucide-react';
+import { Search, Plus, Filter, User, X, Edit, Trash2, FileDown, Loader2, Target } from 'lucide-react';
 import { StudentStatus, Student } from '../types';
 import { db } from '../services/db';
 import { ConfirmModal } from './ConfirmModal';
 import { exportStudentDossier } from '../services/pdfService';
 
 export const StudentManagement: React.FC = () => {
-  const [students, setStudents] = useState(db.getStudents());
+  const [students, setStudents] = useState<Student[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState<string | null>(null);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
-  const [newStudent, setNewStudent] = useState({ name: '', age: '', grade: '1º', classId: 'c-1' });
+  const [newStudent, setNewStudent] = useState({ 
+    name: '', 
+    age: '', 
+    grade: '1º', 
+    classId: 'c-1',
+    status: StudentStatus.ADEQUATE 
+  });
   
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; id: string; name: string }>({
     isOpen: false,
@@ -20,42 +26,48 @@ export const StudentManagement: React.FC = () => {
     name: ''
   });
 
-  useEffect(() => {
+  const loadStudents = () => {
     setStudents(db.getStudents());
+  };
+
+  useEffect(() => {
+    loadStudents();
   }, []);
 
-  const handleAddOrEditStudent = (e: React.FormEvent) => {
+  const handleAddOrEditStudent = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newStudent.name) return;
+
     const studentData: Student = editingStudent ? {
       ...editingStudent,
       name: newStudent.name,
-      age: parseInt(newStudent.age),
+      age: parseInt(newStudent.age) || 7,
       grade: newStudent.grade,
       classId: newStudent.classId,
+      status: newStudent.status
     } : {
       id: 's-' + Math.random().toString(36).substr(2, 5),
       name: newStudent.name,
-      age: parseInt(newStudent.age),
+      age: parseInt(newStudent.age) || 7,
       grade: newStudent.grade,
       classId: newStudent.classId,
-      status: StudentStatus.ADEQUATE,
+      status: newStudent.status,
       evaluations: []
     };
 
-    db.saveStudent(studentData);
-    setStudents(db.getStudents());
+    await db.saveStudent(studentData);
+    loadStudents();
     closeModal();
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingStudent(null);
-    setNewStudent({ name: '', age: '', grade: '1º', classId: 'c-1' });
+    setNewStudent({ name: '', age: '', grade: '1º', classId: 'c-1', status: StudentStatus.ADEQUATE });
   };
 
   const handleGeneratePDF = (student: Student) => {
     setIsGenerating(student.id);
-    // Pequeno delay para feedback visual
     setTimeout(() => {
       const allEvaluations = db.getStudents()
         .find(s => s.id === student.id)?.evaluations || [];
@@ -71,19 +83,21 @@ export const StudentManagement: React.FC = () => {
       name: student.name,
       age: student.age.toString(),
       grade: student.grade,
-      classId: student.classId
+      classId: student.classId,
+      status: student.status
     });
     setIsModalOpen(true);
   };
 
-  const confirmDeleteStudent = () => {
-    db.deleteStudent(deleteConfirm.id);
-    setStudents(db.getStudents());
+  const confirmDeleteStudent = async () => {
+    await db.deleteStudent(deleteConfirm.id);
+    loadStudents();
+    setDeleteConfirm({ ...deleteConfirm, isOpen: false });
   };
 
   const getStatusColor = (status: StudentStatus) => {
     switch (status) {
-      case StudentStatus.ADEQUATE: return 'bg-blue-50 text-blue-600 border-blue-100';
+      case StudentStatus.ADEQUATE: return 'bg-emerald-50 text-emerald-600 border-emerald-100';
       case StudentStatus.DEVELOPING: return 'bg-amber-50 text-amber-600 border-amber-100';
       case StudentStatus.NEEDS_REINFORCEMENT: return 'bg-rose-50 text-rose-600 border-rose-100';
       default: return 'bg-slate-50 text-slate-600 border-slate-100';
@@ -93,143 +107,172 @@ export const StudentManagement: React.FC = () => {
   const filteredStudents = students.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-500 w-full">
       <ConfirmModal 
         isOpen={deleteConfirm.isOpen}
         onClose={() => setDeleteConfirm({ ...deleteConfirm, isOpen: false })}
         onConfirm={confirmDeleteStudent}
         title="Excluir Aluno?"
-        message={`Deseja realmente excluir ${deleteConfirm.name}? Esta ação removerá permanentemente todo o histórico de avaliações BNCC do aluno.`}
+        message={`Deseja realmente excluir ${deleteConfirm.name}? Histórico BNCC será perdido.`}
       />
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <form onSubmit={handleAddOrEditStudent} onClick={(e) => e.stopPropagation()} className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl p-10 space-y-8">
-            <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-black text-slate-800">{editingStudent ? 'Editar Aluno' : 'Novo Aluno'}</h3>
-              <button type="button" onClick={closeModal} className="text-slate-400 hover:text-slate-600 p-2"><X /></button>
+          <form onSubmit={handleAddOrEditStudent} className="bg-white rounded-3xl w-full max-w-sm shadow-2xl p-6 space-y-5 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-50 pb-3">
+              <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">{editingStudent ? 'Editar Aluno' : 'Novo Aluno'}</h3>
+              <button 
+                type="button" 
+                onClick={(e) => { e.preventDefault(); closeModal(); }} 
+                className="text-slate-400 p-1 hover:bg-slate-50 rounded-md"
+              >
+                <X size={20} />
+              </button>
             </div>
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nome Completo</label>
-                <input required className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold" value={newStudent.name} onChange={e => setNewStudent({...newStudent, name: e.target.value})} placeholder="Ex: Maria Oliveira Santos" />
+            
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-0.5">Nome Completo</label>
+                <input required className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-xs" value={newStudent.name} onChange={e => setNewStudent({...newStudent, name: e.target.value})} placeholder="Ex: Maria Santos" />
               </div>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Idade</label>
-                  <input required type="number" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold" value={newStudent.age} onChange={e => setNewStudent({...newStudent, age: e.target.value})} placeholder="7" />
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-0.5">Idade</label>
+                  <input required type="number" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-xs" value={newStudent.age} onChange={e => setNewStudent({...newStudent, age: e.target.value})} />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Série</label>
-                  <select className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold cursor-pointer" value={newStudent.grade} onChange={e => setNewStudent({...newStudent, grade: e.target.value})}>
-                    {['1º', '2º', '3º', '4º', '5º'].map(g => <option key={g} value={g}>{g} Ano</option>)}
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-0.5">Série</label>
+                  <select className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-xs" value={newStudent.grade} onChange={e => setNewStudent({...newStudent, grade: e.target.value})}>
+                    {['1º', '2º', '3º', '4º', '5º', '6º', '7º', '8º', '9º'].map(g => <option key={g} value={g}>{g} Ano</option>)}
                   </select>
                 </div>
               </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-0.5">Nível Inicial BNCC</label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {Object.values(StudentStatus).map((status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      onClick={(e) => { e.preventDefault(); setNewStudent({...newStudent, status}); }}
+                      className={`p-2 rounded-lg border-2 text-[7px] font-black uppercase tracking-tight text-center transition-all ${
+                        newStudent.status === status 
+                        ? 'bg-blue-600 border-blue-600 text-white shadow-md'
+                        : 'bg-white border-slate-100 text-slate-400'
+                      }`}
+                    >
+                      {status.split(' ')[0]}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-            <button className="w-full py-5 bg-[#1d63ed] text-white rounded-[1.5rem] font-black text-lg shadow-xl shadow-blue-100 hover:bg-blue-700 active:scale-95 transition-all">
-              {editingStudent ? 'Salvar Alterações' : 'Cadastrar Aluno'}
+
+            <button 
+              type="submit"
+              className="w-full py-3 bg-blue-600 text-white rounded-xl font-black text-[11px] uppercase tracking-widest shadow-lg hover:bg-blue-700 transition-all"
+            >
+              {editingStudent ? 'Gravar Alterações' : 'Concluir Matrícula'}
             </button>
           </form>
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-xl">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
           <input 
             type="text" 
-            placeholder="Buscar aluno por nome..." 
-            className="w-full pl-14 pr-6 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm font-medium"
+            placeholder="Buscar aluno..." 
+            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-[11px] font-bold"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-6 py-4 bg-white border border-slate-200 rounded-2xl text-slate-600 hover:bg-slate-50 transition-colors font-bold text-sm shadow-sm">
-            <Filter size={18} />
-            Filtros
-          </button>
-          <button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 px-8 py-4 bg-[#1d63ed] text-white rounded-2xl hover:bg-blue-700 transition-all font-black shadow-lg shadow-blue-100 active:scale-95">
-            <Plus size={20} />
-            Novo Aluno
-          </button>
-        </div>
+        <button 
+          type="button"
+          onClick={(e) => { e.preventDefault(); setIsModalOpen(true); }} 
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-black text-[10px] uppercase tracking-widest shadow-md"
+        >
+          <Plus size={14} /> Matricular Estudante
+        </button>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-[2.5rem] overflow-hidden shadow-sm">
-        <table className="w-full text-left">
-          <thead className="bg-slate-50 border-b border-slate-100">
-            <tr>
-              <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Perfil do Aluno</th>
-              <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Turma / Série</th>
-              <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Status BNCC</th>
-              <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filteredStudents.map((student) => (
-              <tr key={student.id} className="hover:bg-slate-50/50 transition-colors group">
-                <td className="px-8 py-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-blue-50 border border-blue-100 rounded-2xl flex items-center justify-center text-blue-600 font-black text-xl shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-all">
-                      {student.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="font-black text-slate-800 text-lg leading-tight">{student.name}</p>
-                      <p className="text-xs text-slate-400 font-bold uppercase tracking-tighter">{student.age} anos</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-8 py-6">
-                   <div className="flex flex-col">
-                      <span className="text-sm font-black text-slate-700">Turma {student.classId.replace('c-', '')}</span>
-                      <span className="text-xs font-bold text-slate-400 uppercase">{student.grade} Ano</span>
-                   </div>
-                </td>
-                <td className="px-8 py-6">
-                  <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${getStatusColor(student.status)}`}>
-                    {student.status}
-                  </span>
-                </td>
-                <td className="px-8 py-6 text-right">
-                  <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button 
-                      onClick={() => handleGeneratePDF(student)}
-                      className={`p-3 bg-white border border-slate-200 hover:bg-green-50 text-green-600 rounded-xl transition-all shadow-sm ${isGenerating === student.id ? 'animate-pulse' : ''}`}
-                      title="Gerar Dossiê PDF"
-                      disabled={isGenerating !== null}
-                    >
-                      {isGenerating === student.id ? <Loader2 className="animate-spin" size={18} /> : <FileDown size={18} />}
-                    </button>
-                    <button 
-                      onClick={() => openEditModal(student)}
-                      className="p-3 bg-white border border-slate-200 hover:bg-blue-50 text-blue-600 rounded-xl transition-all shadow-sm"
-                      title="Editar Aluno"
-                    >
-                      <Edit size={18} />
-                    </button>
-                    <button 
-                      onClick={() => setDeleteConfirm({ isOpen: true, id: student.id, name: student.name })}
-                      className="p-3 bg-white border border-slate-200 hover:bg-rose-50 text-rose-600 rounded-xl transition-all shadow-sm"
-                      title="Excluir Aluno"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </td>
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-slate-50 border-b border-slate-100">
+              <tr>
+                <th className="px-5 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">Aluno</th>
+                <th className="px-5 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">Série</th>
+                <th className="px-5 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">Status BNCC</th>
+                <th className="px-5 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Ações</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {filteredStudents.length === 0 && (
-          <div className="p-20 text-center space-y-4">
-             <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-200">
-                <User size={40} />
-             </div>
-             <p className="text-slate-400 font-bold">Nenhum aluno encontrado.</p>
-          </div>
-        )}
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredStudents.map((student) => (
+                <tr key={student.id} className="hover:bg-slate-50/50 transition-colors group">
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-center text-blue-600 font-black text-[10px]">
+                        {student.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-800 text-xs">{student.name}</p>
+                        <p className="text-[8px] text-slate-400 uppercase font-black tracking-tight">{student.age} anos</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3">
+                    <span className="text-[10px] font-bold text-slate-600 uppercase">{student.grade} Ano</span>
+                  </td>
+                  <td className="px-5 py-3">
+                    <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tight border ${getStatusColor(student.status)}`}>
+                      {student.status}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    <div className="flex items-center justify-end gap-1.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                      <button 
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); handleGeneratePDF(student); }}
+                        className={`p-2 bg-white border border-slate-200 hover:bg-emerald-50 text-emerald-600 rounded-lg transition-all ${isGenerating === student.id ? 'animate-pulse' : ''}`}
+                        title="Dossiê PDF"
+                      >
+                        {isGenerating === student.id ? <Loader2 size={12} className="animate-spin" /> : <FileDown size={12} />}
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); openEditModal(student); }}
+                        className="p-2 bg-white border border-slate-200 hover:bg-blue-50 text-blue-600 rounded-lg transition-all"
+                        title="Editar"
+                      >
+                        <Edit size={12} />
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); setDeleteConfirm({ isOpen: true, id: student.id, name: student.name }); }}
+                        className="p-2 bg-white border border-slate-200 hover:bg-rose-50 text-rose-600 rounded-lg transition-all"
+                        title="Remover"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredStudents.length === 0 && (
+                <tr>
+                   <td colSpan={4} className="p-12 text-center">
+                      <p className="text-slate-300 font-black text-[10px] uppercase tracking-widest">Nenhum resultado encontrado.</p>
+                   </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

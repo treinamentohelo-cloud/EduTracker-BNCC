@@ -11,13 +11,14 @@ export const BNCC_SKILLS: BNCCSkill[] = [
   { id: 'm2', code: 'EF01MA02', name: 'Resolução de problemas', discipline: Discipline.MATH, grade: '1º', description: 'Contar de maneira exata ou aproximada.' },
   { id: 'm3', code: 'EF01MA03', name: 'Raciocínio lógico', discipline: Discipline.MATH, grade: '1º', description: 'Estimar e comparar quantidades de objetos.' },
   // Ciências
-  { id: 'c1', code: 'EF01CI01', name: 'Seres vivos e meio ambiente', discipline: Discipline.SCIENCE, grade: '1º', description: 'Comparar características de diferentes materiais.' },
+  { id: 'c1', code: 'EF01CI01', name: 'Seres vivos e meio ambiente', discipline: Discipline.SCIENCE, grade: '1º', description: 'Comparar características de differentes materiais.' },
   { id: 'c2', code: 'EF01CI02', name: 'Corpo humano e saúde', discipline: Discipline.SCIENCE, grade: '1º', description: 'Localizar, nomear e representar as partes do corpo humano.' },
 ];
 
 export const MOCK_CLASSES: ClassRoom[] = [
-  { id: 'c-1', name: 'Turma A', grade: '1º', shift: 'Matutino', teacherId: 'prof-1' },
-  { id: 'c-2', name: 'Turma B', grade: '2º', shift: 'Vespertino', teacherId: 'prof-1' },
+  // Fixed: Added missing teacherName property as required by ClassRoom interface
+  { id: 'c-1', name: 'Turma A', grade: '1º', shift: 'Matutino', teacherId: 'prof-1', teacherName: 'Marcos Oliveira' },
+  { id: 'c-2', name: 'Turma B', grade: '2º', shift: 'Vespertino', teacherId: 'prof-1', teacherName: 'Marcos Oliveira' },
 ];
 
 export const MOCK_STUDENTS: Student[] = [

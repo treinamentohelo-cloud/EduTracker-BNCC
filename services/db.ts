@@ -1,4 +1,5 @@
-import { Student, ClassRoom, BNCCSkill, StudentEvaluation, ReinforcementGroup, TeacherInvite, UserRole, StudentStatus, SkillLevel, Discipline, AttendanceRecord } from '../types';
+
+import { Student, ClassRoom, BNCCSkill, StudentEvaluation, ReinforcementGroup, TeacherInvite, UserRole, StudentStatus, SkillLevel, Discipline, AttendanceRecord, ReinforcementHistory } from '../types';
 import { BNCC_SKILLS, MOCK_CLASSES, MOCK_STUDENTS } from '../constants';
 import { supabase } from './supabase';
 
@@ -12,7 +13,8 @@ const DB_KEYS = {
   SCHOOL_NAME: 'edutracker_school_name',
   TEACHERS: 'edutracker_teachers',
   DISCIPLINES: 'edutracker_disciplines',
-  ATTENDANCE: 'edutracker_attendance'
+  ATTENDANCE: 'edutracker_attendance',
+  REINFORCEMENT_HISTORY: 'edutracker_reinforcement_history'
 };
 
 export const db = {
@@ -42,7 +44,7 @@ export const db = {
   },
   getStudents: (): Student[] => {
     const data = localStorage.getItem(DB_KEYS.STUDENTS);
-    return data ? JSON.parse(data) : MOCK_STUDENTS;
+    return data ? JSON.parse(data) : MOCK_STUDENTS.map(s => ({...s, evaluations: s.evaluations || []}));
   },
   saveStudent: async (student: Student) => {
     const students = db.getStudents();
@@ -68,7 +70,7 @@ export const db = {
   },
   getClasses: (): ClassRoom[] => {
     const data = localStorage.getItem(DB_KEYS.CLASSES);
-    return data ? JSON.parse(data) : MOCK_CLASSES;
+    return data ? JSON.parse(data) : MOCK_CLASSES.map(c => ({...c, teacherName: c.teacherName || 'Docente Responsável'}));
   },
   saveClass: async (cls: ClassRoom) => {
     const classes = db.getClasses();
@@ -82,7 +84,8 @@ export const db = {
       name: cls.name,
       grade: cls.grade,
       shift: cls.shift,
-      teacher_id: cls.teacherId
+      teacher_id: cls.teacherId,
+      teacher_name: cls.teacherName
     });
   },
   deleteClass: async (id: string) => {
@@ -110,7 +113,6 @@ export const db = {
       grade: skill.grade
     });
   },
-  // Added fix: Implementation of deleteSkill method
   deleteSkill: async (id: string) => {
     const skills = db.getSkills().filter(s => s.id !== id);
     localStorage.setItem(DB_KEYS.SKILLS, JSON.stringify(skills));
@@ -132,13 +134,36 @@ export const db = {
       discipline: group.discipline,
       student_ids: group.studentIds,
       skill_ids: group.skillIds,
-      schedule: group.schedule
+      schedule: group.schedule,
+      start_date: group.startDate
     });
   },
   deleteReinforcement: async (id: string) => {
     const groups = db.getReinforcements().filter(g => g.id !== id);
     localStorage.setItem(DB_KEYS.REINFORCEMENTS, JSON.stringify(groups));
     await supabase.from('reinforcement_groups').delete().eq('id', id);
+  },
+  getReinforcementHistory: (): ReinforcementHistory[] => {
+    const data = localStorage.getItem(DB_KEYS.REINFORCEMENT_HISTORY);
+    return data ? JSON.parse(data) : [];
+  },
+  saveReinforcementHistory: async (history: ReinforcementHistory) => {
+    const histories = db.getReinforcementHistory();
+    histories.unshift(history);
+    localStorage.setItem(DB_KEYS.REINFORCEMENT_HISTORY, JSON.stringify(histories));
+    try {
+      await supabase.from('reinforcement_history').upsert({
+        id: history.id,
+        student_id: history.studentId,
+        student_name: history.studentName,
+        group_name: history.groupName,
+        discipline: history.discipline,
+        start_date: history.startDate,
+        completion_date: history.completionDate
+      });
+    } catch (e) {
+      console.warn("Supabase history sync skip");
+    }
   },
   getAttendance: (groupId?: string): AttendanceRecord[] => {
     const data = localStorage.getItem(DB_KEYS.ATTENDANCE);
@@ -172,7 +197,7 @@ export const db = {
       else if (evalData.level === SkillLevel.DEVELOPING) student.status = StudentStatus.DEVELOPING;
       else student.status = StudentStatus.ADEQUATE;
       
-      db.saveStudent(student);
+      await db.saveStudent(student);
       
       await supabase.from('evaluations').upsert({
         id: evalData.id,
@@ -257,7 +282,8 @@ export const db = {
           discipline: r.discipline,
           studentIds: r.student_ids,
           skillIds: r.skill_ids,
-          schedule: r.schedule
+          schedule: r.schedule,
+          startDate: r.start_date
         }));
         localStorage.setItem(DB_KEYS.REINFORCEMENTS, JSON.stringify(mapped));
       }

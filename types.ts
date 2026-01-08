@@ -64,6 +64,7 @@ export interface ClassRoom {
   grade: string;
   shift: 'Matutino' | 'Vespertino';
   teacherId: string;
+  teacherName: string;
 }
 
 export interface StudentEvaluation {
@@ -93,8 +94,18 @@ export interface ReinforcementGroup {
   skillIds: string[];
   studentIds: string[];
   schedule: string;
-  startDate: string; // Nova data de início
-  expectedEndDate?: string; // Nova previsão de saída
+  startDate: string;
+  expectedEndDate?: string;
+}
+
+export interface ReinforcementHistory {
+  id: string;
+  studentId: string;
+  studentName: string;
+  groupName: string;
+  discipline: string;
+  startDate: string;
+  completionDate: string;
 }
 
 export interface TeacherInvite {

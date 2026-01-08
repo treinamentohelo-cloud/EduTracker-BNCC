@@ -9,7 +9,10 @@ import {
   Calendar,
   Sparkles,
   ChevronRight,
-  Lightbulb
+  CheckCircle2,
+  Award,
+  TrendingUp,
+  Clock
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -26,9 +29,14 @@ import {
 import { db } from '../services/db';
 import { StudentStatus } from '../types';
 
-export const Dashboard: React.FC = () => {
+interface DashboardProps {
+  userEmail?: string;
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ userEmail }) => {
   const students = useMemo(() => db.getStudents(), []);
   const classes = useMemo(() => db.getClasses(), []);
+  const history = useMemo(() => db.getReinforcementHistory(), []);
 
   const stats = useMemo(() => {
     const total = students.length;
@@ -42,9 +50,10 @@ export const Dashboard: React.FC = () => {
       adequado,
       emDesenvolvimento,
       precisaReforco,
+      concluidos: history.length,
       percAdequado: total > 0 ? Math.round((adequado / total) * 100) : 0
     };
-  }, [students, classes]);
+  }, [students, classes, history]);
 
   const pieData = [
     { name: 'Adequado', value: stats.adequado, color: '#10b981' },
@@ -53,157 +62,142 @@ export const Dashboard: React.FC = () => {
   ];
 
   const barData = [
-    { name: 'Língua Portuguesa', atingido: 75, desenvolvimento: 15 },
-    { name: 'Matemática', atingido: 62, desenvolvimento: 23 },
-    { name: 'Ciências', atingido: 88, desenvolvimento: 8 },
-    { name: 'Geografia', atingido: 70, desenvolvimento: 20 },
+    { name: 'Port.', atingido: 75, desenvolvimento: 15 },
+    { name: 'Mat.', atingido: 62, desenvolvimento: 23 },
+    { name: 'Ciên.', atingido: 88, desenvolvimento: 8 },
+    { name: 'Geo.', atingido: 70, desenvolvimento: 20 },
   ];
 
   const getSaudacao = () => {
     const hora = new Date().getHours();
-    if (hora < 12) return "Bom dia";
-    if (hora < 18) return "Boa tarde";
-    return "Boa noite";
+    const rawName = userEmail ? userEmail.split('@')[0] : 'Docente';
+    const userName = rawName.split(/[._-]/).map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+    
+    let saudacao = "Bom dia";
+    if (hora >= 12 && hora < 18) saudacao = "Boa tarde";
+    else if (hora >= 18) saudacao = "Boa noite";
+    
+    return { saudacao, userName };
   };
 
+  const { saudacao, userName } = getSaudacao();
+
   return (
-    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-6 duration-1000 max-w-[1280px] mx-auto pb-6">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700 w-full pb-8">
       
-      {/* Cabeçalho Compacto e Centralizado */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-2 mb-2">
-        <div className="animate-in slide-in-from-left-4 duration-700">
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            {getSaudacao()}, Educador <span className="text-blue-600">Eduardo</span> 👋
+      {/* Header Compacto */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="bg-blue-100 text-blue-600 text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest">Painel de Controle</span>
+            <div className="w-1 h-1 rounded-full bg-green-500 animate-pulse"></div>
+          </div>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none">
+            {saudacao}, <span className="text-blue-600">{userName}</span>
           </h2>
-          <p className="text-slate-400 font-bold text-sm italic">Visão estratégica da rede • 2026</p>
+          <p className="text-slate-400 font-bold text-sm italic">Acompanhamento Pedagógico 2026</p>
         </div>
-        <div className="flex items-center gap-2 bg-white p-1.5 rounded-xl shadow-lg border border-slate-100 animate-in slide-in-from-right-4 duration-700">
-          <div className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg shadow-md shadow-blue-100">
+        <div className="flex items-center gap-2 bg-white p-2 rounded-xl shadow-sm border border-slate-100">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg shadow-md shadow-blue-200">
             <Calendar size={14} className="shrink-0" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Ano Letivo 2026</span>
+            <span className="text-[10px] font-black uppercase tracking-widest">Fev 2026</span>
           </div>
         </div>
       </div>
 
-      {/* Grid de Cards Menores e Elegantes */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Grid de Cards Densos */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { label: 'Total de Alunos', valor: stats.total, sub: 'Matriculados', icone: Users, cor: 'blue', delay: 100 },
-          { label: 'Turmas Ativas', valor: stats.classes, sub: 'Unidades', icone: School, cor: 'indigo', delay: 200 },
-          { label: 'Aproveitamento BNCC', valor: `${stats.percAdequado}%`, sub: 'Meta Global', icone: Target, cor: 'emerald', delay: 300, destaque: true },
-          { label: 'Alerta de Reforço', valor: stats.precisaReforco, sub: 'Crítico', icone: AlertCircle, cor: 'rose', delay: 400 },
+          { label: 'Alunos', valor: stats.total, sub: 'Total', icone: Users, colorClass: 'blue' },
+          { label: 'Turmas', valor: stats.classes, sub: 'Ativas', icone: School, colorClass: 'indigo' },
+          { label: 'BNCC', valor: `${stats.percAdequado}%`, sub: 'Meta Global', icone: Target, colorClass: 'emerald' },
+          { label: 'Alertas', valor: stats.precisaReforco, sub: 'Em Reforço', icone: AlertCircle, colorClass: 'rose' },
+          { label: 'Altas', valor: stats.concluidos, sub: 'Concluídos', icone: Award, colorClass: 'amber', destaque: true },
         ].map((card, idx) => (
           <div 
             key={idx}
-            className={`p-5 rounded-[1.5rem] border border-slate-100 shadow-sm transition-all duration-500 group relative overflow-hidden transform hover:-translate-y-2 hover:shadow-xl hover:scale-[1.02] animate-in slide-in-from-bottom-2 ${card.destaque ? 'bg-slate-900 text-white' : 'bg-white'}`}
-            style={{ animationDelay: `${card.delay}ms` }}
+            className={`p-4 rounded-3xl border border-slate-100 shadow-sm transition-all duration-300 group overflow-hidden hover:-translate-y-1 hover:shadow-lg ${card.destaque ? 'bg-indigo-900 text-white border-indigo-800' : 'bg-white'}`}
           >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-md mb-3 transition-transform group-hover:rotate-6 ${card.destaque ? 'bg-white/10 border border-white/20' : 'bg-' + card.cor + '-600 text-white'}`}>
-              <card.icone size={20} />
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 transition-all ${card.destaque ? 'bg-amber-400 text-indigo-950' : `bg-${card.colorClass}-50 text-${card.colorClass}-600`}`}>
+              <card.icone size={16} />
             </div>
             <div>
-              <p className={`text-[9px] font-black uppercase tracking-[0.1em] mb-1 ${card.destaque ? 'text-blue-300' : 'text-slate-400'}`}>{card.label}</p>
-              <div className="flex items-baseline gap-2">
-                <h4 className="text-2xl font-black">{card.valor}</h4>
-                <span className={`text-[9px] font-bold uppercase tracking-widest ${card.destaque ? 'text-blue-400' : 'text-' + card.cor + '-500'}`}>{card.sub}</span>
+              <p className={`text-[8px] font-black uppercase tracking-widest mb-0.5 ${card.destaque ? 'text-indigo-300' : 'text-slate-400'}`}>{card.label}</p>
+              <div className="flex items-baseline gap-1.5">
+                <h4 className="text-xl font-black">{card.valor}</h4>
+                <span className={`text-[8px] font-bold uppercase tracking-widest ${card.destaque ? 'text-amber-400' : `text-${card.colorClass}-500`}`}>{card.sub}</span>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Gráfico Compacto */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col min-h-[380px]">
           <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-lg font-black text-slate-800 tracking-tight">Desempenho por Área</h3>
-              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Métricas BNCC</p>
-            </div>
-            <div className="flex gap-2">
-              <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div><span className="text-[9px] font-black text-slate-400 uppercase">Atingido</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div><span className="text-[9px] font-black text-slate-400 uppercase">Desenv.</span></div>
+            <h3 className="text-lg font-black text-slate-800 tracking-tight">Evolução por Disciplina</h3>
+            <div className="flex gap-3 bg-slate-50 p-2 rounded-lg border border-slate-100">
+              <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-emerald-500"></div><span className="text-[8px] font-black text-slate-500 uppercase">Atingido</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-amber-500"></div><span className="text-[8px] font-black text-slate-500 uppercase">Desenv.</span></div>
             </div>
           </div>
-          <div className="h-[240px]">
+          
+          <div className="flex-1 w-full min-h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={barData} barGap={8}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 8, fontWeight: 800}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 9, fontWeight: 700}} />
-                <Tooltip 
-                  cursor={{fill: '#f8fafc'}}
-                  contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 20px rgba(0,0,0,0.05)', padding: '10px', fontSize: '11px'}}
-                />
-                <Bar dataKey="atingido" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} />
-                <Bar dataKey="desenvolvimento" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={20} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10, fontWeight: 700}} />
+                <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 20px rgba(0,0,0,0.05)', fontSize: '11px'}} />
+                <Bar dataKey="atingido" fill="#10b981" radius={[4, 4, 0, 0]} barSize={25} />
+                <Bar dataKey="desenvolvimento" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={25} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Status Circular Compacto */}
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
-              <BarChart3 size={16} />
-            </div>
-            <h3 className="text-lg font-black text-slate-800 tracking-tight">Status Geral</h3>
-          </div>
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col min-h-[380px]">
+          <h3 className="text-sm font-black text-slate-800 mb-6 flex items-center gap-2 uppercase tracking-widest">
+            <TrendingUp size={16} className="text-indigo-500" /> Altas Recentes
+          </h3>
           
-          <div className="flex-1 relative min-h-[160px] my-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={65} paddingAngle={6} dataKey="value">
-                  {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-               <p className="text-xl font-black text-slate-900">{stats.total}</p>
-               <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Alunos</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-1">
-            {pieData.map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between p-2 bg-slate-50/80 rounded-xl border border-transparent hover:border-slate-200 transition-all hover:bg-white group">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full" style={{backgroundColor: item.color}}></div>
-                  <span className="text-[9px] font-black text-slate-600">{item.name}</span>
+          <div className="flex-1 space-y-3 overflow-y-auto custom-scrollbar pr-1">
+            {history.length > 0 ? history.slice(0, 10).map((h) => (
+              <div key={h.id} className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group hover:bg-white hover:border-emerald-200 transition-all shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center font-black text-xs border border-emerald-100">
+                    <CheckCircle2 size={18} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-slate-800 leading-none mb-1">{h.studentName}</p>
+                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tight flex items-center gap-1">
+                       <Clock size={8} /> {new Date(h.startDate).toLocaleDateString('pt-BR')} → {new Date(h.completionDate).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
                 </div>
-                <span className="text-xs font-black text-slate-900">{item.value}</span>
+                <div className="text-right">
+                  <p className="text-[8px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full uppercase border border-emerald-100">{h.discipline}</p>
+                </div>
               </div>
-            ))}
+            )) : (
+              <div className="flex flex-col items-center justify-center py-10 opacity-30 text-center">
+                <Award size={40} className="mb-2 text-slate-400" />
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Nenhuma alta registrada</p>
+              </div>
+            )}
           </div>
-        </div>
-      </div>
 
-      {/* IA Pedagógica Compacta */}
-      <div className="bg-gradient-to-br from-[#1d63ed] to-[#1e1b4b] p-0.5 shadow-xl rounded-[2.5rem] animate-in slide-up-4 duration-1000">
-        <div className="bg-white/5 backdrop-blur-2xl p-6 md:p-8 rounded-[2.4rem] text-white relative overflow-hidden">
-          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-            <div className="lg:col-span-5 space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 backdrop-blur-md rounded-lg border border-white/20 shadow-lg">
-                <Sparkles size={14} className="text-blue-300" />
-                <span className="text-[8px] font-black tracking-[0.2em] uppercase text-blue-100">Inteligência Pedagógica</span>
-              </div>
-              <h3 className="text-2xl font-black leading-tight tracking-tight text-center lg:text-left">Seu assistente para o Sucesso.</h3>
-            </div>
-
-            <div className="lg:col-span-7 bg-white/10 border border-white/20 rounded-[2rem] p-5 backdrop-blur-2xl hover:bg-white/15 transition-all">
-              <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
-                 <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/50">
-                    <Lightbulb size={20} className="text-white" />
-                 </div>
-                 <h4 className="text-base font-black">Intervenção 2026</h4>
-              </div>
-              <p className="text-xs font-medium leading-relaxed mb-4 opacity-90 text-center lg:text-left">Habilidade EF01LP05 em foco: Oficina de leitura lúdica recomendada.</p>
-              <button className="w-full px-6 py-3 bg-blue-500 text-white font-black rounded-xl hover:bg-blue-400 transition-all shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2 group text-xs">
-                Gerar Plano <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-              </button>
-            </div>
+          <div className="pt-4 border-t border-slate-100 mt-4">
+             <div className="bg-emerald-50 p-4 rounded-2xl flex items-center justify-between border border-emerald-100">
+                <div>
+                   <p className="text-[10px] font-black text-emerald-900 leading-none">Total de Altas</p>
+                   <p className="text-[8px] font-bold text-emerald-400 uppercase mt-1">Acumulado 2026</p>
+                </div>
+                <div className="text-right">
+                   <p className="text-2xl font-black text-emerald-600 leading-none">{stats.concluidos}</p>
+                   <p className="text-[8px] font-black text-emerald-400 uppercase tracking-widest">Estudantes</p>
+                </div>
+             </div>
           </div>
         </div>
       </div>
